@@ -100,3 +100,29 @@ button:hover {
     color: red;
     font-size: 14px;
 }
+
+#progressContainer {
+    width: 100%;
+    background-color: #ddd;
+    border-radius: 8px;
+    margin-top: 10px;
+    position: relative;
+    height: 25px;
+}
+
+#progressBar {
+    height: 100%;
+    width: 0%;
+    background-color: #4CAF50;
+    border-radius: 8px;
+    transition: width 0.3s;
+}
+
+#progressText {
+    text-align: center;
+    position: absolute;
+    width: 100%;
+    line-height: 25px;
+    font-weight: bold;
+    color: #fff;
+}

@@ -63,11 +63,17 @@ BASE_HTML = """
                 <a href="{{ url_for('logout') }}" class="logout-btn">Çıkış Yap</a>
             </div>
 
-            <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload') }}" class="upload-form">
-                <input type="file" name="file" required>
-                <input type="text" name="description" placeholder="Dosya açıklaması" required>
-                <button type="submit">Yükle</button>
-            </form>
+            <form id="uploadForm" enctype="multipart/form-data" class="upload-form">
+    <input type="file" name="file" required>
+    <input type="text" name="description" placeholder="Dosya açıklaması" required>
+    <button type="submit">Yükle</button>
+</form>
+
+<div id="progressContainer" style="display:none;">
+    <div id="progressBar"></div>
+    <p id="progressText">0%</p>
+</div>
+
 
             <h2>Yüklenen Dosyalar</h2>
             <ul class="file-list">
@@ -82,6 +88,46 @@ BASE_HTML = """
             </ul>
         </div>
     {% endif %}
+    <script>
+document.getElementById("uploadForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "{{ url_for('upload') }}", true);
+
+    const progressContainer = document.getElementById("progressContainer");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+
+    progressContainer.style.display = "block";
+    progressBar.style.width = "0%";
+    progressText.textContent = "0%";
+
+    xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            progressBar.style.width = percent + "%";
+            progressText.textContent = percent + "%";
+        }
+    });
+
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            progressBar.style.width = "100%";
+            progressText.textContent = "Yükleme tamamlandı!";
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            progressText.textContent = "Yükleme hatası!";
+        }
+    };
+
+    xhr.send(formData);
+});
+</script>
+
 </body>
 </html>
 """
