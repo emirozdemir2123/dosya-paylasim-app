@@ -82,6 +82,49 @@ BASE_HTML = """
                 <input type="text" name="description" placeholder="Dosya açıklaması" required>
                 <button type="submit">Yükle</button>
             </form>
+            <div id="progress-container" style="width: 100%; background: #ddd; border-radius: 5px; margin-top: 10px; display: none;">
+    <div id="progress-bar" style="width: 0%; height: 20px; background: #4caf50; border-radius: 5px;"></div>
+</div>
+
+<script>
+document.querySelector('.upload-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const fileInput = form.querySelector('input[name="file"]');
+    const descInput = form.querySelector('input[name="description"]');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('description', descInput.value);
+
+    xhr.open('POST', form.action, true);
+
+    xhr.upload.addEventListener('loadstart', () => {
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+    });
+
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+            const percent = (e.loaded / e.total) * 100;
+            progressBar.style.width = percent + '%';
+        }
+    });
+
+    xhr.addEventListener('load', () => {
+        progressBar.style.width = '100%';
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    });
+
+    xhr.send(formData);
+});
+</script>
+
 
             <h2>Yüklenen Dosyalar</h2>
             <ul class="file-list">
