@@ -1,6 +1,20 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session, send_from_directory
 import os
 import json
+import cloudinary
+import cloudinary.uploader
+from dotenv import load_dotenv
+
+# .env dosyasını yükle
+load_dotenv()
+
+# Cloudinary bağlantısı
+cloudinary.config(
+    cloud_name=os.getenv("CLOUD_NAME"),
+    api_key=os.getenv("API_KEY"),
+    api_secret=os.getenv("API_SECRET"),
+    secure=True
+)
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -63,23 +77,17 @@ BASE_HTML = """
                 <a href="{{ url_for('logout') }}" class="logout-btn">Çıkış Yap</a>
             </div>
 
-            <form id="uploadForm" enctype="multipart/form-data" class="upload-form">
-    <input type="file" name="file" required>
-    <input type="text" name="description" placeholder="Dosya açıklaması" required>
-    <button type="submit">Yükle</button>
-</form>
-
-<div id="progressContainer" style="display:none;">
-    <div id="progressBar"></div>
-    <p id="progressText">0%</p>
-</div>
-
+            <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload') }}" class="upload-form">
+                <input type="file" name="file" required>
+                <input type="text" name="description" placeholder="Dosya açıklaması" required>
+                <button type="submit">Yükle</button>
+            </form>
 
             <h2>Yüklenen Dosyalar</h2>
             <ul class="file-list">
                 {% for file in files %}
                     <li>
-                        <a href="{{ url_for('download', filename=file.filename) }}">{{ file.filename }}</a><br>
+                        <a href="{{ file.url }}" target="_blank">{{ file.filename }}</a><br>
                         <small>Açıklama: {{ file.description }} | Yükleyen: {{ file.uploaded_by }}</small>
                     </li>
                 {% else %}
@@ -88,46 +96,6 @@ BASE_HTML = """
             </ul>
         </div>
     {% endif %}
-    <script>
-document.getElementById("uploadForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-
-    const form = e.target;
-    const formData = new FormData(form);
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "{{ url_for('upload') }}", true);
-
-    const progressContainer = document.getElementById("progressContainer");
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
-
-    progressContainer.style.display = "block";
-    progressBar.style.width = "0%";
-    progressText.textContent = "0%";
-
-    xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            progressBar.style.width = percent + "%";
-            progressText.textContent = percent + "%";
-        }
-    });
-
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            progressBar.style.width = "100%";
-            progressText.textContent = "Yükleme tamamlandı!";
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            progressText.textContent = "Yükleme hatası!";
-        }
-    };
-
-    xhr.send(formData);
-});
-</script>
-
 </body>
 </html>
 """
@@ -182,7 +150,7 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# Dosya yükleme
+# Dosya yükleme (Cloudinary)
 @app.route("/upload", methods=["POST"])
 def upload():
     if "username" not in session:
@@ -192,16 +160,17 @@ def upload():
     description = request.form["description"]
 
     if file:
-        filename = file.filename
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(file_path)
+        # Cloudinary'ye yükle
+        upload_result = cloudinary.uploader.upload(file)
+        file_url = upload_result["secure_url"]
 
         # Dosya bilgilerini JSON'a ekle
         with open(FILES_JSON) as f:
             file_data = json.load(f)
 
         file_data.append({
-            "filename": filename,
+            "filename": file.filename,
+            "url": file_url,
             "description": description,
             "uploaded_by": session["username"]
         })
@@ -210,11 +179,6 @@ def upload():
             json.dump(file_data, f)
 
     return redirect(url_for("home"))
-
-# Dosya indirme
-@app.route("/download/<filename>")
-def download(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
