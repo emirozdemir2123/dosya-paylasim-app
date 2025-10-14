@@ -3,11 +3,13 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
+# Ortam değişkenlerini yükle
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
+# Upload klasörü
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -20,7 +22,6 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -28,7 +29,6 @@ def init_db():
             password TEXT NOT NULL
         )
     """)
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS files (
             id SERIAL PRIMARY KEY,
@@ -37,14 +37,13 @@ def init_db():
             uploaded_by TEXT NOT NULL
         )
     """)
-
     conn.commit()
     cur.close()
     conn.close()
 
 init_db()
 
-# HTML Template
+# HTML template
 BASE_HTML = """
 <!DOCTYPE html>
 <html lang="tr">
@@ -173,15 +172,12 @@ def logout():
 def upload():
     if "username" not in session:
         return redirect(url_for("login"))
-
     file = request.files["file"]
     description = request.form["description"]
-
     if file:
         filename = file.filename
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(file_path)
-
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("INSERT INTO files (filename, description, uploaded_by) VALUES (%s, %s, %s)",
@@ -189,7 +185,6 @@ def upload():
         conn.commit()
         cur.close()
         conn.close()
-
     return redirect(url_for("home"))
 
 # Dosya indirme
@@ -197,5 +192,8 @@ def upload():
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
+# Render uyumlu başlatma
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
