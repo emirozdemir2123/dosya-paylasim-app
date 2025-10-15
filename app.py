@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, redirect, url_for, session, send_from_directory, jsonify
+from flask import Flask, render_template_string, request, redirect, url_for, session, send_from_directory
 import os
 import psycopg2
 from dotenv import load_dotenv
@@ -8,6 +8,9 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+
+# Maksimum dosya boyutu 200MB
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -64,15 +67,30 @@ BASE_HTML = """
         var data = new FormData();
         data.append("file", file);
         data.append("description", desc);
-        xhr.onload = function() { if(xhr.status==200){ location.reload(); } };
+        xhr.onload = function() { 
+            if(xhr.status==200){ 
+                location.reload(); 
+            } else if(xhr.status==413) {
+                alert("Dosya boyutu 200MB sınırını aşıyor!");
+            }
+        };
         xhr.send(data);
     }
     </script>
 </head>
 <body>
+
+<header class="site-header">
+    <a href="{{ url_for('home') }}" class="logo-link">
+        <img src="/static/logo.png" alt="UpMyFile Logo" class="site-logo">
+        <span class="logo-text">UpMyFile</span>
+    </a>
+</header>
+
 {% if page == 'login' or page=='register' %}
 <div class="login-page">
     <div class="left-panel">
+        <img src="/static/logo.png" alt="Logo" class="login-logo">
         <h1>UpMyFile</h1>
     </div>
     <div class="right-panel">
@@ -92,6 +110,7 @@ BASE_HTML = """
         </div>
     </div>
 </div>
+
 {% elif page == 'files' %}
 <div class="container" style="display:flex;">
     <div class="main" style="flex:3;padding:20px;">
@@ -173,7 +192,7 @@ def login():
         conn.close()
         if user:
             session["username"] = username
-            session["role"] = user[3]  # role sütunu
+            session["role"] = user[3]
             return redirect(url_for("home"))
         else:
             return render_template_string(BASE_HTML, page="login", error="Hatalı giriş bilgisi!")
@@ -222,7 +241,7 @@ def upload():
         conn.commit()
         cur.close()
         conn.close()
-    return "", 200  # AJAX gönderimi için
+    return "", 200
 
 @app.route("/delete/<int:file_id>", methods=["POST"])
 def delete_file(file_id):
@@ -245,6 +264,11 @@ def delete_file(file_id):
 @app.route("/download/<filename>")
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
+
+# 200MB sınır aşıldığında hata mesajı
+@app.errorhandler(413)
+def file_too_large(e):
+    return "Dosya boyutu 200MB sınırını aşıyor!", 413
 
 if __name__=="__main__":
     port = int(os.environ.get("PORT",5000))

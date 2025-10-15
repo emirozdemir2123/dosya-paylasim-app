@@ -6,6 +6,36 @@ body {
     color: #333;
 }
 
+/* Üst bar (logo + yazı) */
+.site-header {
+    width: 100%;
+    background: #111;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.site-logo {
+    height: 40px;
+    margin-right: 10px;
+}
+
+.logo-text {
+    font-size: 1.5em;
+    color: white;
+    font-weight: bold;
+}
+
 /* Login ve Register Sayfası */
 .login-page {
     display: flex;
@@ -16,11 +46,18 @@ body {
     flex: 1;
     background: linear-gradient(135deg, #4facfe, #00f2fe);
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     color: white;
-    font-size: 3em;
+    font-size: 2.5em;
     font-weight: bold;
+}
+
+.login-logo {
+    width: 120px;
+    height: auto;
+    margin-bottom: 15px;
 }
 
 .right-panel {
