@@ -1,21 +1,10 @@
-# Python cache
 __pycache__/
 *.pyc
-
-# Local environment
 .env
 .env.*
-
-# Upload edilen dosyalar
 uploads/
 users.json
-
-# IDE / editor dosyaları
 .vscode/
 .idea/
-
-# Database / SQLite dosyaları (varsa)
 *.sqlite3
-
-# Sistem dosyaları
 .DS_Store

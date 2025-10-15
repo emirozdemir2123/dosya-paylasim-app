@@ -2,5 +2,4 @@ Flask==2.2.3
 gunicorn==20.1.0
 werkzeug==2.2.3
 python-dotenv
-cloudinary
 psycopg2-binary
