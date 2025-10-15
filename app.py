@@ -172,7 +172,7 @@ def login():
         cur.close()
         conn.close()
         if user:
-                        session["username"] = username
+            session["username"] = username
             session["role"] = user[3]  # role sütunu
             return redirect(url_for("home"))
         else:
@@ -249,4 +249,3 @@ def download(filename):
 if __name__=="__main__":
     port = int(os.environ.get("PORT",5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
