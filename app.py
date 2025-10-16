@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, redirect, url_for, session, send_from_directory
+from flask import Flask, render_template_string, request, redirect, url_for, session, send_from_directory, jsonify
 import os
 import psycopg2
 from dotenv import load_dotenv
@@ -76,6 +76,19 @@ BASE_HTML = """
         };
         xhr.send(data);
     }
+
+    // 🔐 Şifre gösterme butonu
+    function showPassword(userId) {
+        fetch("/get_password/" + userId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.password) {
+                alert("Kullanıcı Şifresi: " + data.password);
+            } else {
+                alert("Şifre alınamadı!");
+            }
+        });
+    }
     </script>
 </head>
 <body>
@@ -112,8 +125,8 @@ BASE_HTML = """
 </div>
 
 {% elif page == 'files' %}
-<div class="container" style="display:flex;">
-    <div class="main" style="flex:3;padding:20px;">
+<div class="container" style="display:flex; justify-content:center; align-items:flex-start; gap:30px; padding:30px;">
+    <div class="main" style="flex:3; padding:20px; background:#fff; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); text-align:center;">
         <div class="header">
             <h1>📁 Dosya Paylaşım Alanı</h1>
             <p>Hoşgeldin, <strong>{{ session['username'] }}</strong></p>
@@ -146,11 +159,19 @@ BASE_HTML = """
     </div>
 
     {% if session.role=='admin' %}
-    <div class="admin-panel">
+    <div class="admin-panel" style="flex:1; background:#fafafa; padding:20px; border-radius:10px; border:1px solid #ddd;">
         <h3>👑 Admin Paneli</h3>
         <ul>
         {% for user in users %}
-            <li>{{ user[1] }} — <small>{{ user[2] }}</small></li>
+            <li style="display:flex; justify-content:space-between; align-items:center;">
+                <span>{{ user[1] }}</span>
+                <div>
+                    <button type="button" onclick="showPassword({{ user[0] }})">🔐 Göster</button>
+                    <form method="POST" action="{{ url_for('delete_user', user_id=user[0]) }}" style="display:inline;">
+                        <button type="submit">🗑️ Sil</button>
+                    </form>
+                </div>
+            </li>
         {% endfor %}
         </ul>
     </div>
@@ -171,7 +192,7 @@ def home():
 
         users = []
         if session.get("role") == "admin":
-            cur.execute("SELECT * FROM users ORDER BY id")
+            cur.execute("SELECT id, username, password FROM users ORDER BY id")
             users = cur.fetchall()
 
         cur.close()
@@ -264,6 +285,32 @@ def delete_file(file_id):
 @app.route("/download/<filename>")
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
+
+# 🔐 Şifre gösterme
+@app.route("/get_password/<int:user_id>")
+def get_password(user_id):
+    if session.get("role") != "admin":
+        return jsonify({"error": "Yetkiniz yok!"}), 403
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT password FROM users WHERE id=%s", (user_id,))
+    pw = cur.fetchone()
+    cur.close()
+    conn.close()
+    return jsonify({"password": pw[0] if pw else "Bulunamadı"})
+
+# 🗑️ Kullanıcı silme
+@app.route("/delete_user/<int:user_id>", methods=["POST"])
+def delete_user(user_id):
+    if session.get("role") != "admin":
+        return "Yetkiniz yok!", 403
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(url_for("home"))
 
 # 200MB sınır aşıldığında hata mesajı
 @app.errorhandler(413)
