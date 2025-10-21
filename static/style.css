@@ -266,3 +266,198 @@ body {
     padding: 4px 6px;
     border-radius: 4px;
 }
+/* ========== YENİ EKLEMELER ========== */
+
+/* Üst Menü Navigasyonu */
+.nav-links {
+    position: absolute;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.nav-links a {
+    background: #222;
+    color: #fff;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.95em;
+    transition: background 0.3s;
+}
+
+.nav-links a:hover {
+    background: #4facfe;
+    color: #fff;
+}
+
+/* Ayarlar Sayfası */
+.settings-container {
+    max-width: 600px;
+    margin: 60px auto;
+    background: #fff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.settings-container h1 {
+    font-size: 1.8em;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.settings-container h3 {
+    text-align: left;
+    color: #333;
+    border-bottom: 2px solid #4facfe;
+    padding-bottom: 5px;
+    margin-top: 25px;
+}
+
+.settings-form {
+    margin-top: 15px;
+    text-align: left;
+}
+
+.settings-form input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1em;
+}
+
+.settings-form button {
+    width: 100%;
+    padding: 10px;
+    background: #4facfe;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.3s;
+}
+
+.settings-form button:hover {
+    background: #00f2fe;
+}
+
+/* Bilgi ve hata mesajları */
+.success {
+    color: green;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.error {
+    color: red;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* Tema Değiştir Butonu */
+.settings-container button[onclick="toggleTheme()"] {
+    margin-top: 10px;
+    background: #333;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.settings-container button[onclick="toggleTheme()"]:hover {
+    background: #4facfe;
+}
+
+/* ========== KOYU TEMA DESTEĞİ ========== */
+
+html[data-theme='dark'],
+html[data-theme='dark'] body {
+    background: #1a1a1a;
+    color: #f0f0f0;
+}
+
+/* Üst bar */
+html[data-theme='dark'] .site-header {
+    background: #0c0c0c;
+}
+
+html[data-theme='dark'] .logo-text {
+    color: #f0f0f0;
+}
+
+html[data-theme='dark'] .nav-links a {
+    background: #333;
+    color: #fff;
+}
+
+html[data-theme='dark'] .nav-links a:hover {
+    background: #4facfe;
+}
+
+/* Ana içerik */
+html[data-theme='dark'] .main,
+html[data-theme='dark'] .admin-panel,
+html[data-theme='dark'] .settings-container {
+    background: #242424;
+    color: #f0f0f0;
+    box-shadow: 0 4px 10px rgba(255,255,255,0.05);
+    border: 1px solid #333;
+}
+
+/* Giriş / Kayıt paneli */
+html[data-theme='dark'] .right-panel {
+    background: #2b2b2b;
+    color: #fff;
+}
+
+html[data-theme='dark'] .login-container input {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+}
+
+html[data-theme='dark'] .login-container button {
+    background: #4facfe;
+}
+
+/* Formlar */
+html[data-theme='dark'] input,
+html[data-theme='dark'] textarea {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+}
+
+html[data-theme='dark'] .upload-form button {
+    background: #4facfe;
+}
+
+html[data-theme='dark'] .upload-form button:hover {
+    background: #00f2fe;
+}
+
+/* Liste ve kartlar */
+html[data-theme='dark'] .file-list li {
+    border-bottom: 1px solid #444;
+}
+
+html[data-theme='dark'] .admin-panel {
+    background: #2a2a2a;
+}
+
+html[data-theme='dark'] .progress {
+    background: #444;
+}
+
+html[data-theme='dark'] .progress-bar {
+    background: #00c3ff;
+}
+

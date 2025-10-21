@@ -3,13 +3,10 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
-# Ortam değişkenlerini yükle
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
-
-# Maksimum dosya boyutu 200MB
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 UPLOAD_FOLDER = "uploads"
@@ -19,7 +16,6 @@ def get_db_connection():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     return conn
 
-# Tabloları oluştur
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -47,7 +43,7 @@ init_db()
 
 BASE_HTML = """
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="{{ session.get('theme', 'light') }}">
 <head>
     <meta charset="UTF-8">
     <title>UpMyFile</title>
@@ -77,7 +73,6 @@ BASE_HTML = """
         xhr.send(data);
     }
 
-    // 🔐 Şifre gösterme butonu
     function showPassword(userId) {
         fetch("/get_password/" + userId)
         .then(response => response.json())
@@ -89,18 +84,29 @@ BASE_HTML = """
             }
         });
     }
+
+    function toggleTheme() {
+        fetch("/toggle_theme").then(()=>location.reload());
+    }
     </script>
 </head>
 <body>
-
 <header class="site-header">
     <a href="{{ url_for('home') }}" class="logo-link">
         <img src="/static/logo.png" alt="UpMyFile Logo" class="site-logo">
         <span class="logo-text">UpMyFile</span>
     </a>
+    {% if session.get('username') %}
+    <nav class="nav-links">
+        <a href="{{ url_for('home') }}">🏠 Anasayfa</a>
+        <a href="{{ url_for('settings') }}">⚙️ Ayarlar</a>
+        <a href="{{ url_for('logout') }}">🚪 Çıkış</a>
+    </nav>
+    {% endif %}
 </header>
 
 {% if page == 'login' or page=='register' %}
+<!-- GİRİŞ / KAYIT SAYFASI -->
 <div class="login-page">
     <div class="left-panel">
         <img src="/static/logo.png" alt="Logo" class="login-logo">
@@ -125,12 +131,12 @@ BASE_HTML = """
 </div>
 
 {% elif page == 'files' %}
-<div class="container" style="display:flex; justify-content:center; align-items:flex-start; gap:30px; padding:30px;">
-    <div class="main" style="flex:3; padding:20px; background:#fff; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); text-align:center;">
+<!-- DOSYA SAYFASI -->
+<div class="container">
+    <div class="main">
         <div class="header">
             <h1>📁 Dosya Paylaşım Alanı</h1>
             <p>Hoşgeldin, <strong>{{ session['username'] }}</strong></p>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Çıkış Yap</a>
         </div>
 
         <form onsubmit="uploadFile(this);" enctype="multipart/form-data" class="upload-form">
@@ -159,7 +165,7 @@ BASE_HTML = """
     </div>
 
     {% if session.role=='admin' %}
-    <div class="admin-panel" style="flex:1; background:#fafafa; padding:20px; border-radius:10px; border:1px solid #ddd;">
+    <div class="admin-panel">
         <h3>👑 Admin Paneli</h3>
         <ul>
         {% for user in users %}
@@ -177,6 +183,24 @@ BASE_HTML = """
     </div>
     {% endif %}
 </div>
+
+{% elif page == 'settings' %}
+<!-- AYARLAR SAYFASI -->
+<div class="settings-container">
+    <h1>⚙️ Ayarlar</h1>
+    <h3>🔑 Şifre Değiştir</h3>
+    <form method="POST" action="{{ url_for('change_password') }}" class="settings-form">
+        <input type="password" name="old_password" placeholder="Eski Şifre" required>
+        <input type="password" name="new_password" placeholder="Yeni Şifre" required>
+        <button type="submit">Değiştir</button>
+    </form>
+
+    {% if message %}<p class="success">{{ message }}</p>{% endif %}
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <h3>🌓 Tema</h3>
+    <button onclick="toggleTheme()">Tema Değiştir (Şu an: {{ session.get('theme','light') }})</button>
+</div>
 {% endif %}
 </body>
 </html>
@@ -189,12 +213,10 @@ def home():
         cur = conn.cursor()
         cur.execute("SELECT * FROM files ORDER BY id DESC")
         files = cur.fetchall()
-
         users = []
         if session.get("role") == "admin":
             cur.execute("SELECT id, username, password FROM users ORDER BY id")
             users = cur.fetchall()
-
         cur.close()
         conn.close()
         return render_template_string(BASE_HTML, page="files", files=files, users=users)
@@ -214,6 +236,7 @@ def login():
         if user:
             session["username"] = username
             session["role"] = user[3]
+            session["theme"] = "light"
             return redirect(url_for("home"))
         else:
             return render_template_string(BASE_HTML, page="login", error="Hatalı giriş bilgisi!")
@@ -237,6 +260,7 @@ def register():
             conn.close()
         session["username"] = username
         session["role"] = "user"
+        session["theme"] = "light"
         return redirect(url_for("home"))
     return render_template_string(BASE_HTML, page="register")
 
@@ -244,6 +268,40 @@ def register():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+@app.route("/settings")
+def settings():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    return render_template_string(BASE_HTML, page="settings")
+
+@app.route("/change_password", methods=["POST"])
+def change_password():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    old_pw = request.form["old_password"]
+    new_pw = request.form["new_password"]
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT password FROM users WHERE username=%s", (session["username"],))
+    user_pw = cur.fetchone()
+    if user_pw and user_pw[0] == old_pw:
+        cur.execute("UPDATE users SET password=%s WHERE username=%s", (new_pw, session["username"]))
+        conn.commit()
+        msg = "Şifre başarıyla değiştirildi!"
+        cur.close()
+        conn.close()
+        return render_template_string(BASE_HTML, page="settings", message=msg)
+    else:
+        cur.close()
+        conn.close()
+        return render_template_string(BASE_HTML, page="settings", error="Eski şifre yanlış!")
+
+@app.route("/toggle_theme")
+def toggle_theme():
+    current = session.get("theme", "light")
+    session["theme"] = "dark" if current == "light" else "light"
+    return "", 204
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -286,7 +344,6 @@ def delete_file(file_id):
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-# 🔐 Şifre gösterme
 @app.route("/get_password/<int:user_id>")
 def get_password(user_id):
     if session.get("role") != "admin":
@@ -299,7 +356,6 @@ def get_password(user_id):
     conn.close()
     return jsonify({"password": pw[0] if pw else "Bulunamadı"})
 
-# 🗑️ Kullanıcı silme
 @app.route("/delete_user/<int:user_id>", methods=["POST"])
 def delete_user(user_id):
     if session.get("role") != "admin":
@@ -312,7 +368,6 @@ def delete_user(user_id):
     conn.close()
     return redirect(url_for("home"))
 
-# 200MB sınır aşıldığında hata mesajı
 @app.errorhandler(413)
 def file_too_large(e):
     return "Dosya boyutu 200MB sınırını aşıyor!", 413
