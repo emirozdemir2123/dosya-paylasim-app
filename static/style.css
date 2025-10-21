@@ -205,6 +205,7 @@ body {
     border-bottom: 1px solid #ddd;
 }
 
+/* Dosya linkleri */
 .file-list a {
     color: #4facfe;
     text-decoration: none;
@@ -212,6 +213,44 @@ body {
 
 .file-list a:hover {
     text-decoration: underline;
+}
+
+/* Beğeni ve yorum formu */
+.file-list form {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.file-list input[type="text"] {
+    padding: 4px 8px;
+    margin-right: 4px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.file-list button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+.file-list button:hover {
+    background-color: #0056b3;
+}
+
+/* Yorum listesi */
+.file-list ul {
+    list-style-type: none;
+    padding-left: 20px;
+    margin-top: 4px;
+}
+
+.file-list ul li {
+    font-size: 0.9em;
+    margin-bottom: 2px;
 }
 
 /* Admin Paneli */
@@ -266,7 +305,6 @@ body {
     padding: 4px 6px;
     border-radius: 4px;
 }
-/* ========== YENİ EKLEMELER ========== */
 
 /* Üst Menü Navigasyonu */
 .nav-links {
@@ -460,4 +498,3 @@ html[data-theme='dark'] .progress {
 html[data-theme='dark'] .progress-bar {
     background: #00c3ff;
 }
-

@@ -35,12 +35,29 @@ def init_db():
             uploaded_by TEXT NOT NULL
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS likes (
+            id SERIAL PRIMARY KEY,
+            file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
+            username TEXT NOT NULL
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id SERIAL PRIMARY KEY,
+            file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
 
 init_db()
 
+# ---------------- BASE HTML ------------------
 BASE_HTML = """
 <!DOCTYPE html>
 <html lang="tr" data-theme="{{ session.get('theme', 'light') }}">
@@ -151,6 +168,22 @@ BASE_HTML = """
         {% for file in files %}
             <li>
                 <a href="{{ url_for('download', filename=file[1]) }}">{{ file[1] }}</a> — {{ file[3] }}
+
+                <!-- Beğen ve yorum -->
+                <form method="POST" action="{{ url_for('like_file', file_id=file[0]) }}" style="display:inline;">
+                    <button type="submit">👍 {{ file[4] }} Beğen</button>
+                </form>
+                <form method="POST" action="{{ url_for('comment_file', file_id=file[0]) }}">
+                    <input type="text" name="comment" placeholder="Yorum yaz..." required>
+                    <button type="submit">Yorum</button>
+                </form>
+
+                <ul>
+                {% for c in get_comments(file[0]) %}
+                    <li><strong>{{ c[2] }}</strong>: {{ c[3] }}</li>
+                {% endfor %}
+                </ul>
+
                 {% if session.role=='admin' %}
                 <form method="POST" action="{{ url_for('delete_file', file_id=file[0]) }}" style="display:inline;">
                     <button type="submit">Sil</button>
@@ -206,12 +239,25 @@ BASE_HTML = """
 </html>
 """
 
+# ---------------- HELPERS ------------------
+def get_comments(file_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM comments WHERE file_id=%s ORDER BY created_at DESC", (file_id,))
+    comments = cur.fetchall()
+    cur.close()
+    conn.close()
+    return comments
+
+# ---------------- ROUTES ------------------
 @app.route("/")
 def home():
     if "username" in session:
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM files ORDER BY id DESC")
+        cur.execute("SELECT f.id, f.filename, f.description, f.uploaded_by, "
+                    "(SELECT COUNT(*) FROM likes l WHERE l.file_id=f.id) as like_count "
+                    "FROM files f ORDER BY f.id DESC")
         files = cur.fetchall()
         users = []
         if session.get("role") == "admin":
@@ -219,7 +265,7 @@ def home():
             users = cur.fetchall()
         cur.close()
         conn.close()
-        return render_template_string(BASE_HTML, page="files", files=files, users=users)
+        return render_template_string(BASE_HTML, page="files", files=files, users=users, get_comments=get_comments)
     return redirect(url_for("login"))
 
 @app.route("/login", methods=["GET","POST"])
@@ -368,10 +414,42 @@ def delete_user(user_id):
     conn.close()
     return redirect(url_for("home"))
 
+# ---------------- LIKE & COMMENT ------------------
+@app.route("/like/<int:file_id>", methods=["POST"])
+def like_file(file_id):
+    if "username" not in session:
+        return redirect(url_for("login"))
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM likes WHERE file_id=%s AND username=%s", (file_id, session['username']))
+    if not cur.fetchone():
+        cur.execute("INSERT INTO likes (file_id, username) VALUES (%s,%s)", (file_id, session['username']))
+        conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(url_for("home"))
+
+@app.route("/comment/<int:file_id>", methods=["POST"])
+def comment_file(file_id):
+    if "username" not in session:
+        return redirect(url_for("login"))
+    content = request.form.get("comment")
+    if content:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO comments (file_id, username, content) VALUES (%s,%s,%s)",
+                    (file_id, session['username'], content))
+        conn.commit()
+        cur.close()
+        conn.close()
+    return redirect(url_for("home"))
+
+# ---------------- ERRORS ------------------
 @app.errorhandler(413)
 def file_too_large(e):
     return "Dosya boyutu 200MB sınırını aşıyor!", 413
 
+# ---------------- RUN ------------------
 if __name__=="__main__":
     port = int(os.environ.get("PORT",5000))
     app.run(host="0.0.0.0", port=port, debug=True)
