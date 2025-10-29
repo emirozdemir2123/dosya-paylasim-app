@@ -6,7 +6,7 @@ load_dotenv()
 conn = psycopg2.connect(os.getenv("DATABASE_URL"))
 cur = conn.cursor()
 
-cur.execute("UPDATE users SET role = 'admin' WHERE username = 'EmirOzdemir';")
+cur.execute("UPDATE users SET role = 'admin' WHERE username = 'MahmutEsatŞAHİN';")
 conn.commit()
 print("✅ Emir admin yapıldı.")
 

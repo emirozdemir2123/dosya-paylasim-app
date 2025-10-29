@@ -65,6 +65,7 @@ BASE_HTML = """
     <meta charset="UTF-8">
     <title>UpMyFile</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="/static/logo.png">
     <script>
     function uploadFile(form) {
         event.preventDefault();
